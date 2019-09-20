@@ -1,0 +1,6 @@
+emr
+hadoop
+hbase
+hive 
+hive 
+spark
