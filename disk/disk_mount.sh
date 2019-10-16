@@ -3,7 +3,7 @@
 
 function disk_scan() {
   echo "********* scanning unmount disk... *********"
-  ALL_DISK=`fdisk -l | grep -Ev "mapper|root|swap|docker" |grep ^"Disk /"|cut -d ' ' -f2 |cut -d: -f1`
+  ALL_DISK=`sudo fdisk -l | grep -Ev "mapper|root|swap|docker" |grep ^"Disk /"|cut -d ' ' -f2 |cut -d: -f1`
   DISK_TO_MOUNT=()
   for i in ${ALL_DISK}
   do 
@@ -18,12 +18,12 @@ function disk_scan() {
 function part_format() {
   for i in ${DISK_TO_MOUNT[@]}
   do
-     parted -s "${i}" mklabel gpt
-     parted -a optimal -s "${i}" mkpart primary 0% 100% 
-     partprobe ${i}
+     sudo parted -s "${i}" mklabel gpt
+     sudo parted -a optimal -s "${i}" mkpart primary 0% 100% 
+     sudo partprobe ${i}
      echo -e "********* disk ${i} partition done *********"
      sleep 1
-     mkfs.xfs -f "${i}1" 1> /dev/null
+     sudo mkfs.xfs -f "${i}1" 1> /dev/null
      echo "********* mkfs.xfs done *********"
   done 
 }
@@ -39,7 +39,11 @@ function disk_mount() {
      	startup_auto_mount "${i}1" "${MOUNT_DIR}"
      else
 	read -p "${MOUNT_DIR} in used, Input new mount point: " NEW_POINT
-        if [[ -d "${NEW_POINT}" ]];then
+        while [[ -z "${NEW_POINT}" ]]
+	do
+	    read -p "please input a valid mount point: " NEW_POINT
+        done
+        if [[  -d "${NEW_POINT}" ]];then
             echo "********* ${NEW_POINT} in used, exit *********"
             exit 1
         else
@@ -53,10 +57,10 @@ function disk_mount() {
 function startup_auto_mount() {
     PART=$1
     MOUNT_DIR=$2
-    mkdir -p "${MOUNT_DIR}"
-    UUID_NUM=`blkid | grep "${PART}" | cut -d ' ' -f2 | cut -d '"' -f2`
-    echo "UUID=${UUID_NUM} ${MOUNT_DIR} xfs    defaults 0 0" >> /etc/fstab
-    mount -a
+    sudo mkdir -p "${MOUNT_DIR}"
+    UUID_NUM=`sudo blkid | grep "${PART}" | cut -d ' ' -f2 | cut -d '"' -f2`
+    echo "UUID=${UUID_NUM} ${MOUNT_DIR} xfs    defaults 0 0" | sudo tee -a /etc/fstab
+    sudo mount -a
     [[ $? -eq 0 ]] && echo "********* ${i} mount to ${MOUNT_DIR} success *********"
 }
 
